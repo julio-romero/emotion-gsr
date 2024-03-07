@@ -310,7 +310,7 @@ class DataProcessor:
 
         img = Image.open(image_path)
         fig = px.density_contour(df[df['Emotion']==value],x="norm_x", y="norm_y",z='GSR Raw',histfunc='sum', labels={'sum':'Total GSR','norm_y':'y','norm_x':'x'},title = f'{value}',height=768*0.6, width=1024*0.6)
-        fig.update_traces(contours_coloring="heatmap", opacity=0.55,line_width=0,colorscale='turbo',ncontours=100)
+        fig.update_traces(contours_coloring="heatmap", opacity=0.65,line_width=0,colorscale='turbo',ncontours=100)
         # lower opacity of the contours coloring
         fig.add_layout_image(
             dict(
