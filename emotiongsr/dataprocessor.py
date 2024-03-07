@@ -15,6 +15,38 @@ import os
 
 import pandas as pd
 
+BASE_COLUMNS = [
+    "Timestamp",
+    "Row",
+    "StimType",
+    "Duration",
+    "SourceStimuliName",
+    "CollectionPhase",
+    "SlideEvent",
+    "Participant",
+    "SampleNumber",
+    "Anger",
+    "Contempt",
+    "Disgust",
+    "Fear",
+    "Joy",
+    "Sadness",
+    "Surprise",
+    "Engagement",
+    "Valence",
+    "Sentimentality",
+    "Confusion",
+    "Neutral",
+    "GSR RAW",
+    "GSR Resistance CAL",
+    "GSR Conductance CAL",
+    "Heart Rate PPG ALG",
+    "GSR Raw",
+    "GSR Interpolated",
+    "Tonic Signal",
+    "Phasic Signal",
+]
+
 
 class DataProcessor:
     """
@@ -127,37 +159,7 @@ class DataProcessor:
         None
         """
         if columns_to_keep is None:
-            columns_to_keep = [
-                "Timestamp",
-                "Row",
-                "StimType",
-                "Duration",
-                "SourceStimuliName",
-                "CollectionPhase",
-                "SlideEvent",
-                "Participant",
-                "SampleNumber",
-                "Anger",
-                "Contempt",
-                "Disgust",
-                "Fear",
-                "Joy",
-                "Sadness",
-                "Surprise",
-                "Engagement",
-                "Valence",
-                "Sentimentality",
-                "Confusion",
-                "Neutral",
-                "GSR RAW",
-                "GSR Resistance CAL",
-                "GSR Conductance CAL",
-                "Heart Rate PPG ALG",
-                "GSR Raw",
-                "GSR Interpolated",
-                "Tonic Signal",
-                "Phasic Signal",
-            ]
+            columns_to_keep = BASE_COLUMNS
 
         os.makedirs(self.output_path, exist_ok=True)
         for file in os.listdir(self.imotions_path):
