@@ -12,6 +12,8 @@ Colchester, Essex.
 
 """
 import os
+import numpy as np
+import cv2
 
 import pandas as pd
 
@@ -193,3 +195,13 @@ class DataProcessor:
                 cleaned_csv_path = os.path.join(self.output_path, cleaned_csv_filename)
                 cleaned_df.to_csv(cleaned_csv_path, index=False)
         self.data_is_clean = True
+
+    def generate_heatmap(self, data, value, image_subpath):
+        # Work on a copy of the dataframe
+        df = data.copy()
+        # First check if eye data is available
+        # TODO add actual column names
+        if not ['norm_x'] in data.columns:
+            df['norm_x'] = np.random.normal(0.5, 0.1, len(df))
+            df['norm_y'] = np.random.normal(0.5, 0.1, len(df))
+        
