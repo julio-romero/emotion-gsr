@@ -6,15 +6,17 @@ Priyank and Sayidah's thesis. We present an OOP solution with well
 documented methods and tested compatibility with iMotions 10, the
 most recent version of iMotions.
 
-Created on March 7th 2024 
+Created on March 7th 2024
 
 Colchester, Essex.
 
 """
-import os
-import numpy as np
-import cv2
 
+import os
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
 BASE_COLUMNS = [
@@ -116,16 +118,32 @@ class DataProcessor:
         ---
             ValueError: if you havent called the method clean_files first
         """
+
+        raw_dataframes = self.__load_raw_data()
+        # get the first df
+        start_times = []
+        for _, df in raw_dataframes.items():
+            time = df.iloc[7][2]
+            time = time.split(" ")[1]
+            time = time.split("+")[0]
+            start_times.append(pd.to_datetime(time))
+        start_times.sort()
         if not self.data_is_clean:
             raise ValueError("Clean the data first")
         dataframes = self.__load_clean_data()
-        # Convert 'Timestamp' to datetime type and set it as index
+        i = 0
         for _, df in dataframes.items():
-            df["Timestamp"] = pd.to_datetime(df["Timestamp"])
+            # use the first start time in the first iteration
+            start_time = start_times[i]
+            df["Timestamp"] = start_time + (
+                df["Timestamp"] * pd.to_timedelta(1, unit="ms")
+            )
             df.set_index("Timestamp", inplace=True)
+            i += 1
         data = pd.DataFrame()
         for _, df in dataframes.items():
             data = pd.concat([data, df], axis=0)
+
         return data
 
     def __clean_single_file(self, df, filename):
@@ -199,9 +217,44 @@ class DataProcessor:
     def generate_heatmap(self, data, value, image_subpath):
         # Work on a copy of the dataframe
         df = data.copy()
+        # use the image path to get the stimuli name
+        image_name = image_subpath.split("/")[-1].replace(".jpg", "")
+        df = df[df["SourceStimuliName"] == image_name]
         # First check if eye data is available
         # TODO add actual column names
-        if not ['norm_x'] in data.columns:
-            df['norm_x'] = np.random.normal(0.5, 0.1, len(df))
-            df['norm_y'] = np.random.normal(0.5, 0.1, len(df))
-        
+        if "norm_x" not in data.columns:
+            df["norm_x"] = np.random.normal(0.5, 0.1, len(df))
+            df["norm_y"] = np.random.normal(0.5, 0.1, len(df))
+        # Load the image
+        image_path = os.path.join(self.images_path, image_subpath)
+        img = cv2.imread(image_path)
+        # Create a mask image to draw the emotions on
+        emotion_mask = np.zeros_like(img)
+
+        for _, row in df.iterrows():
+            # Normalize coordinates to match the image dimensions
+            x = int(row["norm_x"] * img.shape[1])
+            y = int(row["norm_y"] * img.shape[0])
+
+            # Plot each emotion on the mask image
+            emotion_intensity = row[value]
+            if emotion_intensity is not None:
+                emotion_intensity = np.nan_to_num(emotion_intensity)
+                # Use the intensity to set the color (or you can use it to set the size of the circle)
+                intensity = int(
+                    emotion_intensity * 255
+                )  # Assuming the intensity is normalized between 0 and 1
+                color = (intensity, intensity, intensity)  # Grayscale intensity
+
+                # Draw a circle on the mask image
+                cv2.circle(emotion_mask, (x, y), 10, color, -1)
+
+        # Apply Gaussian blur to the emotion mask
+        blurred_emotion_mask = cv2.GaussianBlur(emotion_mask, (13, 13), 11)
+
+        heatmap_img = cv2.applyColorMap(blurred_emotion_mask, cv2.COLORMAP_JET)
+
+        # Combine the original image with the blurred emotion mask
+        result_img = cv2.addWeighted(heatmap_img, 0.5, img, 0.5, 0)
+
+        plt.imshow(result_img)
