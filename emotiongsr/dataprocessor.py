@@ -18,17 +18,13 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import plotly.express as px
+from PIL import Image
 
 BASE_COLUMNS = [
     "Timestamp",
-    "Row",
-    "StimType",
-    "Duration",
     "SourceStimuliName",
-    "CollectionPhase",
-    "SlideEvent",
     "Participant",
-    "SampleNumber",
     "Anger",
     "Contempt",
     "Disgust",
@@ -50,7 +46,7 @@ BASE_COLUMNS = [
     "Tonic Signal",
     "Phasic Signal",
 ]
-
+EMOTIONS = ['Anger', 'Contempt', 'Disgust', 'Fear', 'Joy', 'Sadness', 'Surprise', 'Engagement', 'Valence', 'Sentimentality', 'Confusion', 'Neutral']
 
 class DataProcessor:
     """
@@ -68,7 +64,6 @@ class DataProcessor:
         self.output_path = output_path
         self.data_is_clean = False
 
-    # TODO use the raw data to get the actual timestamp
     def __load_raw_data(self):
         all_files = os.listdir(self.imotions_path)
 
@@ -123,7 +118,7 @@ class DataProcessor:
         # get the first df
         start_times = []
         for _, df in raw_dataframes.items():
-            time = df.iloc[7][2]
+            time = df.iloc[7][2] # get the start time
             time = time.split(" ")[1]
             time = time.split("+")[0]
             start_times.append(pd.to_datetime(time))
@@ -143,6 +138,13 @@ class DataProcessor:
         data = pd.DataFrame()
         for _, df in dataframes.items():
             data = pd.concat([data, df], axis=0)
+        # resample data for 0.5 second intervals, use the mean for numerical columns, and the first for categorical
+        
+        data = data.groupby(['SourceStimuliName','Participant']).resample('0.01S').mean()
+        # the inverse of groupby, reset_index
+        data = data.reset_index()
+        data = data.set_index('Timestamp')
+        
 
         return data
 
@@ -258,3 +260,88 @@ class DataProcessor:
         result_img = cv2.addWeighted(heatmap_img, 0.5, img, 0.5, 0)
 
         plt.imshow(result_img)
+    
+
+    def __melt_emotions(self, data):
+        df = data.copy()
+
+        #change emotion columns to emotion rows in the dataframe keep index and timestamp columns too
+        df_emotions = df[EMOTIONS].copy()
+        
+
+        df_emotions['Timestamp'] = df['Timestamp']
+        df_emotions['index'] = df['index']
+        df_emotions['frame'] = df['frame']
+        df_emotions = df_emotions.melt(id_vars=['Timestamp','index','frame'], value_vars=EMOTIONS, var_name='Emotion', value_name='Intensity')
+
+        df_emotions.dropna(inplace=True)
+                #merge df_emotions with df on index
+        df=df_emotions.merge(df, on='index')
+
+
+        # Get intensity using GSR
+        df['intensity_GSR']=df['GSR Raw']*df['Intensity']
+        
+        return df
+    
+    def generate_emotion_heatmap(self, data, value, image_subpath):
+        df = data.copy()
+        
+        # use the image path to get the stimuli name
+        image_name = image_subpath.split("/")[-1].replace(".jpg", "")
+        df = df[df["SourceStimuliName"] == image_name]
+
+        # make an index column
+        df=df.reset_index()
+        df['index'] = df.index
+        df['frame'] = df['index']//20
+
+        #melt emotions
+        df = self.__melt_emotions(df)
+        # First check if eye data is available
+        
+
+        # TODO add actual column names
+        if "norm_x" not in data.columns:
+            df["norm_x"] = np.random.rand(len(df))
+            df["norm_y"] = np.random.rand( len(df))
+        # Load the image
+        image_path = os.path.join(self.images_path, image_subpath)
+
+        img = Image.open(image_path)
+        fig = px.density_contour(df[df['Emotion']==value],x="norm_x", y="norm_y",z='GSR Raw',histfunc='sum', labels={'sum':'Total GSR','norm_y':'y','norm_x':'x'},title = f'{value}',height=768*0.6, width=1024*0.6)
+        fig.update_traces(contours_coloring="fill", opacity=0.55,line_width=0,colorscale='turbo',ncontours=100)
+        # lower opacity of the contours coloring
+        fig.add_layout_image(
+            dict(
+                source=img,
+                xref="paper",
+                yref="paper",
+                x=0,
+                y=1,
+                sizex=1,
+                sizey=1,
+                sizing="stretch",
+                opacity=1,
+                layer="below")
+        )
+        fig.layout['coloraxis']['colorbar']['title'] = 'GSR'
+
+        fig.update_layout(
+            
+            coloraxis_showscale=False,
+        )
+        #remove axis lines
+
+        fig.update_xaxes(showline=False, showgrid=False)
+        fig.update_yaxes(showline=False, showgrid=False)
+
+        #only show plot from 0 to 1 in both axis
+        fig.update_xaxes(range=[0, 1])
+        fig.update_yaxes(range=[0, 1])
+        fig.show()
+
+    def get_all_emotion_heatmaps(self, data, image_subpath):
+        for emotion in EMOTIONS:
+            self.generate_emotion_heatmap(data, emotion, image_subpath)
+        
