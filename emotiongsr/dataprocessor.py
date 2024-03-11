@@ -147,7 +147,7 @@ class DataProcessor:
             data = pd.concat([data, df], axis=0)
         # resample data for 0.5 second intervals, use the mean for numerical columns, and the first for categorical
         # backwards fill the categorical columns
-        data['SourceStimuliName'] = data['SourceStimuliName'].bfill()
+        data['SourceStimuliName'] = data['SourceStimuliName'].ffill()
         data = data.groupby(['SourceStimuliName','Participant']).resample('0.01S').mean()
         # the inverse of groupby, reset_index
         data = data.reset_index()
@@ -311,7 +311,7 @@ class DataProcessor:
         image_path = os.path.join(self.images_path, image_subpath)
 
         img = Image.open(image_path)
-        fig = px.density_contour(df[df['Emotion']==value],x="norm_x", y="norm_y",z='GSR Raw',histfunc='sum', labels={'sum':'Total GSR','norm_y':'y','norm_x':'x'},title = f'{value}',height=768*0.6, width=1024*0.6)
+        fig = px.density_contour(df[df['Emotion']==value],x="norm_x", y="norm_y",z='intensity_GSR',histfunc='sum', labels={'sum':'Total GSR','norm_y':'y','norm_x':'x'},title = f'{value}',height=img.size[1]*0.6, width=img.size[0]*0.6)
         fig.update_traces(contours_coloring="heatmap", opacity=0.65,line_width=0,colorscale='turbo',ncontours=100)
         # lower opacity of the contours coloring
         fig.add_layout_image(
@@ -327,12 +327,7 @@ class DataProcessor:
                 opacity=1,
                 layer="below")
         )
-        fig.layout['coloraxis']['colorbar']['title'] = 'GSR'
-
-        fig.update_layout(
-            
-            coloraxis_showscale=False,
-        )
+        
         #remove axis lines
 
         fig.update_xaxes(showline=False, showgrid=False)
