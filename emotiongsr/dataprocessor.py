@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 from PIL import Image
+import plotly.graph_objects as go
 
 BASE_COLUMNS = [
     "Timestamp",
@@ -271,7 +272,7 @@ class DataProcessor:
         plt.imshow(result_img)
     
 
-    def __melt_emotions(self, data):
+    def __melt_emotions(self, data,value):
         df = data.copy()
 
         #change emotion columns to emotion rows in the dataframe keep index and timestamp columns too
@@ -289,11 +290,12 @@ class DataProcessor:
 
 
         # Get intensity using GSR
-        df['intensity_GSR']=df['GSR Raw']*df['Intensity']
+        df['intensity']=df[value]*df['Intensity']
         
         return df
-    
-    def generate_emotion_heatmap(self, data, value, image_subpath):
+
+
+    def generate_emotion_heatmap(self, data,emotion, value, image_subpath):
         df = data.copy()
         
         # use the image path to get the stimuli name
@@ -306,39 +308,69 @@ class DataProcessor:
         df['frame'] = df['index']//20
 
         #melt emotions
-        df = self.__melt_emotions(df)
+        df = self.__melt_emotions(df,value)
+        
         # Load the image
         image_path = os.path.join(self.images_path, image_subpath)
 
         img = Image.open(image_path)
-        fig = px.density_contour(df[df['Emotion']==value],x="norm_x", y="norm_y",z='intensity_GSR',histfunc='sum', labels={'sum':'Total GSR','norm_y':'y','norm_x':'x'},title = f'{value}',height=img.size[1]*0.6, width=img.size[0]*0.6)
-        fig.update_traces(contours_coloring="heatmap", opacity=0.65,line_width=0,colorscale='turbo',ncontours=100)
-        # lower opacity of the contours coloring
-        fig.add_layout_image(
-            dict(
-                source=img,
-                xref="paper",
-                yref="paper",
-                x=0,
-                y=1,
-                sizex=1,
-                sizey=1,
-                sizing="stretch",
-                opacity=1,
-                layer="below")
+
+        df['norm_x'] = df['norm_x']*img.size[0]
+        df['norm_y'] = df['norm_y']*img.size[1]
+
+        #TODO change the color scale based on the gradient of the uploaded image
+        if df.intensity.max() <= 0:
+            color_scale = [
+                [0.0, 'rgba(0, 0, 255, 1)'],   # Fully opaque dark blue at the lowest value
+                [0.2, 'rgba(0, 0, 255, 0.8)'], # Less opaque blue
+                [0.4, 'rgba(0, 255, 255, 0.6)'], # Cyan with some transparency
+                [0.6, 'rgba(0, 255, 0, 0.4)'], # Green with more transparency
+                [0.8, 'rgba(255, 255, 0, 0.2)'], # Yellow with high transparency
+                [1.0, 'rgba(255, 0, 0, 0)']    # Transparent light red at the highest value
+            ]
+        else:
+        # Define the color scale based on the uploaded image gradient
+            color_scale = [
+                [0.0, 'rgba(0, 0, 255, 0)'],   # Transparent blue at the lowest value
+                [0.2, 'rgba(0, 0, 255, 0.2)'], # Slightly opaque blue
+                [0.4, 'rgba(0, 255, 255, 0.4)'], # Cyan
+                [0.6, 'rgba(0, 255, 0, 0.6)'], # Green
+                [0.8, 'rgba(255, 255, 0, 0.8)'], # Yellow
+                [1.0, 'rgba(255, 0, 0, 1)']    # Fully opaque red at the highest value
+            ]
+
+        fig=px.imshow(img)
+        fig.add_trace(go.Histogram2dContour(name=value,
+                x=df[df['Emotion'] == emotion]['norm_x'],
+                y=df[df['Emotion'] == emotion]['norm_y'],
+                z=df[df['Emotion'] == emotion]['intensity'],
+                histfunc='sum',
+                colorscale=color_scale,
+                ncontours=100,
+                line=dict(width=0),
+                opacity=0.9,
+                contours=dict(coloring='heatmap',size=10),
+                
+                # fill the contour in all the histogram 
+                xaxis='x',
+                yaxis='y',
+                             
+            ))
+        fig.update_layout(
+            title=emotion,
+            xaxis_title='X',
+            yaxis_title='Y',
+            xaxis=dict(showgrid=False, zeroline=False, visible=False),
+            yaxis=dict(showgrid=False, zeroline=False, visible=False),
         )
+
+        fig.update_xaxes(range=[0, img.size[0]])
+        fig.update_yaxes(range=[ img.size[1], 0])
         
-        #remove axis lines
-
-        fig.update_xaxes(showline=False, showgrid=False)
-        fig.update_yaxes(showline=False, showgrid=False)
-
-        #only show plot from 0 to 1 in both axis
-        fig.update_xaxes(range=[0, 1])
-        fig.update_yaxes(range=[0, 1])
         fig.show()
 
-    def get_all_emotion_heatmaps(self, data, image_subpath):
+
+    def get_all_emotion_heatmaps(self, data,value, image_subpath):
         for emotion in EMOTIONS:
-            self.generate_emotion_heatmap(data, emotion, image_subpath)
+            self.generate_emotion_heatmap(data, emotion,value, image_subpath)
         
