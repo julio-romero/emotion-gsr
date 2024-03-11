@@ -37,6 +37,10 @@ BASE_COLUMNS = [
     "Sentimentality",
     "Confusion",
     "Neutral",
+    "ET_GazeLeftx",
+    "ET_GazeLefty",
+    "ET_GazeRightx",
+    "ET_GazeRighty",
     "GSR RAW",
     "GSR Resistance CAL",
     "GSR Conductance CAL",
@@ -46,7 +50,10 @@ BASE_COLUMNS = [
     "Tonic Signal",
     "Phasic Signal",
 ]
+
 EMOTIONS = ['Anger', 'Contempt', 'Disgust', 'Fear', 'Joy', 'Sadness', 'Surprise', 'Engagement', 'Valence', 'Sentimentality', 'Confusion', 'Neutral']
+
+RECORDING_TIME_ROW = 8
 
 class DataProcessor:
     """
@@ -118,7 +125,7 @@ class DataProcessor:
         # get the first df
         start_times = []
         for _, df in raw_dataframes.items():
-            time = df.iloc[7][2] # get the start time
+            time = df.iloc[RECORDING_TIME_ROW][2] # get the start time
             time = time.split(" ")[1]
             time = time.split("+")[0]
             start_times.append(pd.to_datetime(time))
@@ -139,13 +146,20 @@ class DataProcessor:
         for _, df in dataframes.items():
             data = pd.concat([data, df], axis=0)
         # resample data for 0.5 second intervals, use the mean for numerical columns, and the first for categorical
-        
+        # backwards fill the categorical columns
+        data['SourceStimuliName'] = data['SourceStimuliName'].bfill()
         data = data.groupby(['SourceStimuliName','Participant']).resample('0.01S').mean()
         # the inverse of groupby, reset_index
         data = data.reset_index()
         data = data.set_index('Timestamp')
-        
 
+        if "ET_GazeLeftx" in data.columns:
+            # Calculate the normalized x and y coordinates
+            data['norm_x'] = np.nan_to_num(((data['ET_GazeLeftx'] + data['ET_GazeRightx']) / 2)) / 1920
+            data['norm_y'] = np.nan_to_num(((data['ET_GazeLefty'] + data['ET_GazeRighty']) / 2)) / 1080    
+        else:
+            data['norm_x'] = np.random.rand(len(data))
+            data['norm_y'] = np.random.rand(len(data))     
         return data
 
     def __clean_single_file(self, df, filename):
@@ -222,11 +236,6 @@ class DataProcessor:
         # use the image path to get the stimuli name
         image_name = image_subpath.split("/")[-1].replace(".jpg", "")
         df = df[df["SourceStimuliName"] == image_name]
-        # First check if eye data is available
-        # TODO add actual column names
-        if "norm_x" not in data.columns:
-            df["norm_x"] = np.random.normal(0.5, 0.1, len(df))
-            df["norm_y"] = np.random.normal(0.5, 0.1, len(df))
         # Load the image
         image_path = os.path.join(self.images_path, image_subpath)
         img = cv2.imread(image_path)
@@ -298,13 +307,6 @@ class DataProcessor:
 
         #melt emotions
         df = self.__melt_emotions(df)
-        # First check if eye data is available
-        
-
-        # TODO add actual column names
-        if "norm_x" not in data.columns:
-            df["norm_x"] = np.random.rand(len(df))
-            df["norm_y"] = np.random.rand( len(df))
         # Load the image
         image_path = os.path.join(self.images_path, image_subpath)
 
