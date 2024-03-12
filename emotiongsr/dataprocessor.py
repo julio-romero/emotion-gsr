@@ -319,7 +319,7 @@ class DataProcessor:
         df['norm_y'] = df['norm_y']*img.size[1]
 
         #TODO change the color scale based on the gradient of the uploaded image
-        if df.intensity.max() <= 0:
+        if value == 'Phasic Signal':
             color_scale = [
                 [0.0, 'rgba(0, 0, 255, 1)'],   # Fully opaque dark blue at the lowest value
                 [0.2, 'rgba(0, 0, 255, 0.8)'], # Less opaque blue
