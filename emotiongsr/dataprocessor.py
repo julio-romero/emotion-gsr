@@ -13,14 +13,17 @@ Colchester, Essex.
 """
 
 import os
+import warnings
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
-from PIL import Image
 import plotly.graph_objects as go
+from PIL import Image
+
+warnings.filterwarnings("ignore")
 
 BASE_COLUMNS = [
     "Timestamp",
@@ -52,9 +55,23 @@ BASE_COLUMNS = [
     "Phasic Signal",
 ]
 
-EMOTIONS = ['Anger', 'Contempt', 'Disgust', 'Fear', 'Joy', 'Sadness', 'Surprise', 'Engagement', 'Valence', 'Sentimentality', 'Confusion', 'Neutral']
+EMOTIONS = [
+    "Anger",
+    "Contempt",
+    "Disgust",
+    "Fear",
+    "Joy",
+    "Sadness",
+    "Surprise",
+    "Engagement",
+    "Valence",
+    "Sentimentality",
+    "Confusion",
+    "Neutral",
+]
 
 RECORDING_TIME_ROW = 8
+
 
 class DataProcessor:
     """
@@ -126,7 +143,7 @@ class DataProcessor:
         # get the first df
         start_times = []
         for _, df in raw_dataframes.items():
-            time = df.iloc[RECORDING_TIME_ROW][2] # get the start time
+            time = df.iloc[RECORDING_TIME_ROW][2]  # get the start time
             time = time.split(" ")[1]
             time = time.split("+")[0]
             start_times.append(pd.to_datetime(time))
@@ -148,19 +165,27 @@ class DataProcessor:
             data = pd.concat([data, df], axis=0)
         # resample data for 0.5 second intervals, use the mean for numerical columns, and the first for categorical
         # backwards fill the categorical columns
-        data['SourceStimuliName'] = data['SourceStimuliName'].ffill()
-        data = data.groupby(['SourceStimuliName','Participant']).resample('0.01S').mean()
+        data["SourceStimuliName"] = data["SourceStimuliName"].ffill()
+        data = (
+            data.groupby(["SourceStimuliName", "Participant"]).resample("0.01s").mean()
+        )
         # the inverse of groupby, reset_index
         data = data.reset_index()
-        data = data.set_index('Timestamp')
+        data = data.set_index("Timestamp")
 
         if "ET_GazeLeftx" in data.columns:
             # Calculate the normalized x and y coordinates
-            data['norm_x'] = np.nan_to_num(((data['ET_GazeLeftx'] + data['ET_GazeRightx']) / 2)) / 1920
-            data['norm_y'] = np.nan_to_num(((data['ET_GazeLefty'] + data['ET_GazeRighty']) / 2)) / 1080    
+            data["norm_x"] = (
+                np.nan_to_num(((data["ET_GazeLeftx"] + data["ET_GazeRightx"]) / 2))
+                / 1920
+            )
+            data["norm_y"] = (
+                np.nan_to_num(((data["ET_GazeLefty"] + data["ET_GazeRighty"]) / 2))
+                / 1080
+            )
         else:
-            data['norm_x'] = np.random.rand(len(data))
-            data['norm_y'] = np.random.rand(len(data))     
+            data["norm_x"] = np.random.rand(len(data))
+            data["norm_y"] = np.random.rand(len(data))
         return data
 
     def __clean_single_file(self, df, filename):
@@ -270,107 +295,113 @@ class DataProcessor:
         result_img = cv2.addWeighted(heatmap_img, 0.5, img, 0.5, 0)
 
         plt.imshow(result_img)
-    
 
-    def __melt_emotions(self, data,value):
+    def __melt_emotions(self, data, value):
         df = data.copy()
 
-        #change emotion columns to emotion rows in the dataframe keep index and timestamp columns too
+        # change emotion columns to emotion rows in the dataframe keep index and timestamp columns too
         df_emotions = df[EMOTIONS].copy()
-        
 
-        df_emotions['Timestamp'] = df['Timestamp']
-        df_emotions['index'] = df['index']
-        df_emotions['frame'] = df['frame']
-        df_emotions = df_emotions.melt(id_vars=['Timestamp','index','frame'], value_vars=EMOTIONS, var_name='Emotion', value_name='Intensity')
+        df_emotions["Timestamp"] = df["Timestamp"]
+        df_emotions["index"] = df["index"]
+        df_emotions["frame"] = df["frame"]
+        df_emotions = df_emotions.melt(
+            id_vars=["Timestamp", "index", "frame"],
+            value_vars=EMOTIONS,
+            var_name="Emotion",
+            value_name="Intensity",
+        )
 
         df_emotions.dropna(inplace=True)
-                #merge df_emotions with df on index
-        df=df_emotions.merge(df, on='index')
-
+        # merge df_emotions with df on index
+        df = df_emotions.merge(df, on="index")
 
         # Get intensity using GSR
-        df['intensity']=df[value]*df['Intensity']
-        
+        df["intensity"] = df[value] * df["Intensity"]
+
         return df
 
-
-    def generate_emotion_heatmap(self, data,emotion, value, image_subpath):
+    def generate_emotion_heatmap(self, data, emotion, value, image_subpath):
         df = data.copy()
-        
+
         # use the image path to get the stimuli name
         image_name = image_subpath.split("/")[-1].replace(".jpg", "")
         df = df[df["SourceStimuliName"] == image_name]
 
         # make an index column
-        df=df.reset_index()
-        df['index'] = df.index
-        df['frame'] = df['index']//20
+        df = df.reset_index()
+        df["index"] = df.index
+        df["frame"] = df["index"] // 20
 
-        #melt emotions
-        df = self.__melt_emotions(df,value)
-        
+        # melt emotions
+        df = self.__melt_emotions(df, value)
+
         # Load the image
         image_path = os.path.join(self.images_path, image_subpath)
 
         img = Image.open(image_path)
 
-        df['norm_x'] = df['norm_x']*img.size[0]
-        df['norm_y'] = df['norm_y']*img.size[1]
+        df["norm_x"] = df["norm_x"] * img.size[0]
+        df["norm_y"] = df["norm_y"] * img.size[1]
 
-        #TODO change the color scale based on the gradient of the uploaded image
-        if value == 'Phasic Signal':
+        # TODO change the color scale based on the gradient of the uploaded image
+        if value == "Phasic Signal":
             color_scale = [
-                [0.0, 'rgba(0, 0, 255, 1)'],   # Fully opaque dark blue at the lowest value
-                [0.2, 'rgba(0, 0, 255, 0.8)'], # Less opaque blue
-                [0.4, 'rgba(0, 255, 255, 0.6)'], # Cyan with some transparency
-                [0.6, 'rgba(0, 255, 0, 0.4)'], # Green with more transparency
-                [0.8, 'rgba(255, 255, 0, 0.2)'], # Yellow with high transparency
-                [1.0, 'rgba(255, 0, 0, 0)']    # Transparent light red at the highest value
+                [
+                    0.0,
+                    "rgba(0, 0, 255, 1)",
+                ],  # Fully opaque dark blue at the lowest value
+                [0.2, "rgba(0, 0, 255, 0.8)"],  # Less opaque blue
+                [0.4, "rgba(0, 255, 255, 0.6)"],  # Cyan with some transparency
+                [0.6, "rgba(0, 255, 0, 0.4)"],  # Green with more transparency
+                [0.8, "rgba(255, 255, 0, 0.2)"],  # Yellow with high transparency
+                [
+                    1.0,
+                    "rgba(255, 0, 0, 0)",
+                ],  # Transparent light red at the highest value
             ]
         else:
-        # Define the color scale based on the uploaded image gradient
+            # Define the color scale based on the uploaded image gradient
             color_scale = [
-                [0.0, 'rgba(0, 0, 255, 0)'],   # Transparent blue at the lowest value
-                [0.2, 'rgba(0, 0, 255, 0.2)'], # Slightly opaque blue
-                [0.4, 'rgba(0, 255, 255, 0.4)'], # Cyan
-                [0.6, 'rgba(0, 255, 0, 0.6)'], # Green
-                [0.8, 'rgba(255, 255, 0, 0.8)'], # Yellow
-                [1.0, 'rgba(255, 0, 0, 1)']    # Fully opaque red at the highest value
+                [0.0, "rgba(0, 0, 255, 0)"],  # Transparent blue at the lowest value
+                [0.2, "rgba(0, 0, 255, 0.2)"],  # Slightly opaque blue
+                [0.4, "rgba(0, 255, 255, 0.4)"],  # Cyan
+                [0.6, "rgba(0, 255, 0, 0.6)"],  # Green
+                [0.8, "rgba(255, 255, 0, 0.8)"],  # Yellow
+                [1.0, "rgba(255, 0, 0, 1)"],  # Fully opaque red at the highest value
             ]
 
-        fig=px.imshow(img)
-        fig.add_trace(go.Histogram2dContour(name=value,
-                x=df[df['Emotion'] == emotion]['norm_x'],
-                y=df[df['Emotion'] == emotion]['norm_y'],
-                z=df[df['Emotion'] == emotion]['intensity'],
-                histfunc='sum',
+        fig = px.imshow(img)
+        fig.add_trace(
+            go.Histogram2dContour(
+                name=value,
+                x=df[df["Emotion"] == emotion]["norm_x"],
+                y=df[df["Emotion"] == emotion]["norm_y"],
+                z=df[df["Emotion"] == emotion]["intensity"],
+                histfunc="sum",
                 colorscale=color_scale,
                 ncontours=100,
                 line=dict(width=0),
                 opacity=0.9,
-                contours=dict(coloring='heatmap',size=10),
-                
-                # fill the contour in all the histogram 
-                xaxis='x',
-                yaxis='y',
-                             
-            ))
+                contours=dict(coloring="heatmap", size=10),
+                # fill the contour in all the histogram
+                xaxis="x",
+                yaxis="y",
+            )
+        )
         fig.update_layout(
             title=emotion,
-            xaxis_title='X',
-            yaxis_title='Y',
+            xaxis_title="X",
+            yaxis_title="Y",
             xaxis=dict(showgrid=False, zeroline=False, visible=False),
             yaxis=dict(showgrid=False, zeroline=False, visible=False),
         )
 
         fig.update_xaxes(range=[0, img.size[0]])
-        fig.update_yaxes(range=[ img.size[1], 0])
-        
+        fig.update_yaxes(range=[img.size[1], 0])
+
         fig.show()
 
-
-    def get_all_emotion_heatmaps(self, data,value, image_subpath):
+    def get_all_emotion_heatmaps(self, data, value, image_subpath):
         for emotion in EMOTIONS:
-            self.generate_emotion_heatmap(data, emotion,value, image_subpath)
-        
+            self.generate_emotion_heatmap(data, emotion, value, image_subpath)
