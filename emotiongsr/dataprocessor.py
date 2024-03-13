@@ -391,25 +391,32 @@ class DataProcessor:
                 yaxis="y",
                 colorbar=dict(
                     title=value,
-                    x=0.5,  # Adjust this to move the color bar closer to or further from the plot
+                    x=1,  # Adjust this to move the color bar closer to or further from the plot
                 ),
             )
         )
         fig.update_layout(
             title=emotion,
+            autosize=False,
+            width=600,
+            height=500,
+            margin=dict(
+                l=50,
+                r=50,
+                b=10,
+                t=60,
+            ),
             xaxis=dict(
                 showgrid=False,
                 zeroline=False,
                 visible=False,  # the axis is not visible
-                domain=[0, 0.5],
             ),
             yaxis=dict(
                 showgrid=False,
                 zeroline=False,
                 visible=False,  # the axis is visible if needed
-                domain=[0, 1],  # use the full height of the canvas
+                # domain=[0, 1],  # use the full height of the canvas
             ),
-           
         )
 
         fig.update_xaxes(range=[0, img.size[0]])
