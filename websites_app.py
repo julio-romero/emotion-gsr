@@ -31,7 +31,8 @@ def run_web_app(root):
         processor = DataProcessor(scroll_csv, imotions_csv, output_path)
         processor.process_data()
         fig = processor.plot_heatmap()
-
+        # save plot to file and save in output_path
+        fig.savefig(f"{output_path}/heatmap.png")
         # Display the figure in the Tkinter window
         canvas = FigureCanvasTkAgg(fig, master=plot_frame)
         canvas.draw()

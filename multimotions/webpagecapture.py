@@ -41,9 +41,8 @@ class WebPageCapture:
             f"--window-size={self.window_size[0]},{self.window_size[1]}"
         )
         # capture the entire webpage
-        chrome_options.add_argument("--start-maximized")
         chrome_options.add_argument("--hide-scrollbars")
-        chrome_options.add_argument("--disable-extensions")
+        
 
         return chrome_options
 
@@ -76,13 +75,10 @@ class WebPageCapture:
             except TimeoutException:
                 print("Loading took too much time, retrying...")
         # Set the width and height of the browser window to the size of the whole document
-        total_width = driver.execute_script(
-            "return document.documentElement.scrollWidth"
-        )
-        total_height = driver.execute_script(
-            "return document.documentElement.scrollHeight"
-        )
+        total_width = driver.execute_script("return document.body.offsetWidth")
+        total_height = driver.execute_script("return document.body.parentNode.scrollHeight")
         driver.set_window_size(total_width, total_height)
+
         screenshot_bytes = driver.get_screenshot_as_png()
         # Optionally, convert bytes to Image for manipulation or viewing
         screenshot_img = Image.open(BytesIO(screenshot_bytes))
