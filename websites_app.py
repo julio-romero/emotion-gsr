@@ -1,3 +1,5 @@
+import os
+
 import tkinter as tk
 from tkinter import filedialog, messagebox
 from tkinter.ttk import Label, Button, Frame
@@ -23,20 +25,20 @@ def run_web_app(root):
         imotions_csv = imotions_entry.get()
         scroll_csv = scroll_entry.get()
         output_path = output_path_entry.get()
-
+        screenshot_path = screenshot_entry.get()
         if not imotions_csv or not scroll_csv or not output_path:
             messagebox.showerror("Error", "Please select all required files and output directory")
             return
 
         processor = DataProcessor(scroll_csv, imotions_csv, output_path)
         processor.process_data()
-        fig = processor.plot_heatmap()
+        fig = processor.plot_heatmap(screenshot_path)
         # save plot to file and save in output_path
-        fig.savefig(f"{output_path}/heatmap.png")
-        # Display the figure in the Tkinter window
-        canvas = FigureCanvasTkAgg(fig, master=plot_frame)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+        fig.savefig(f"{output_path}/heatmap.png",dpi=1000)
+        # Open the file in the ouptut path
+        messagebox.showinfo("Success", "Heatmap generated successfully")
+        fig.show()
+
 
     # File selection UI
     frame = Frame(root)
@@ -57,7 +59,16 @@ def run_web_app(root):
     output_path_entry.grid(row=2, column=1, padx=5, pady=5)
     Button(frame, text="Browse", command=lambda: select_directory(output_path_entry)).grid(row=2, column=2, padx=5, pady=5)
 
+    # screenshot file input
+    Label(frame, text="Screenshot:").grid(row=3, column=0, padx=5, pady=5)
+    screenshot_entry = tk.Entry(frame)
+    screenshot_entry.grid(row=3, column=1, padx=5, pady=5)
+    Button(frame, text="Browse", command=lambda: select_file(screenshot_entry)).grid(row=3, column=2, padx=5, pady=5)
+
+    
+
     Button(root, text="Generate Heatmap", command=generate_heatmap).pack(pady=10)
+
 
     # Frame for plotting
     plot_frame = Frame(root)

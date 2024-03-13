@@ -123,6 +123,7 @@ def process_files(file_path1, file_path2, user_dir):
         chrome_options.add_argument("--window-size=1920x1080")
         chrome_options.add_argument("--hide-scrollbars")
 
+
         driver = webdriver.Chrome(options=chrome_options)
         driver.set_page_load_timeout(60)  # set the page load timeout
        

@@ -9,16 +9,16 @@ February 2024
 """
 
 import os
-from io import BytesIO
+
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from PIL import Image
 from scipy.ndimage import gaussian_filter
-from scipy.stats import gaussian_kde
 
-from multimotions.webpagecapture import WebPageCapture
+
+
 
 
 class DataProcessor:
@@ -55,9 +55,6 @@ class DataProcessor:
         )
         # Get the unique URLs from the data
         self.unique_urls = self.web_data["URL"].unique()
-        self.capture_handler = WebPageCapture(
-            chrome_driver_path=os.getenv("CHROME_DRIVER_PATH")
-        )
 
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -171,55 +168,7 @@ class DataProcessor:
         self.merged_data.reset_index(inplace=True)
 
     def process_data(self):
-
-        # Assuming `existing_screenshots` is a dictionary storing existing screenshots
-        # Key: URL, Value: Screenshot Image object or byte array
-        existing_screenshots = {}
-
-        # Assuming `output_data` is a pandas DataFrame initialized somewhere above this code
-        # Assuming `web_data` is a pandas DataFrame containing URLs and their corresponding image data
-
-        # Dictionary to store the screenshots for the current session
-        current_screenshots = {}
-        # Iterate over the dictionary and save each DataFrame as a separate CSV file
-        for url in self.unique_urls:
-
-            screenshot_exists = url in existing_screenshots
-
-            if screenshot_exists:
-                # Use the existing screenshot from the dictionary
-                current_screenshots[url] = existing_screenshots[url]
-                print(f"Screenshot already exists for: {url}")
-            else:
-                print("Screenshot does not exist, loading the page...")
-                # Navigate to the webpage
-                # call the instance of the WebPageCapture class
-                screenshot_img = self.capture_handler.capture_screenshot(url)
-                # Store the screenshot in the current session dictionary
-                current_screenshots[url] = screenshot_img
-        # Update the data frames accordingly
-        for url, img in current_screenshots.items():
-            # Here you might want to convert img (PIL Image) to a format suitable for your DataFrame or application needs
-            # For demonstration, let's assume we're storing the image in a byte array format
-            img_byte_array = BytesIO()
-            img.save(img_byte_array, format="PNG")
-            img_bytes = img_byte_array.getvalue()
-
-            # Add or update the data frame with the URL and the screenshot data
-            if url in self.output_data["URL"].values:
-                self.output_data.loc[self.output_data["URL"] == url, "Image_Data"] = [
-                    img_bytes
-                ]
-                self.web_data.loc[self.web_data["URL"] == url, "Image_Data"] = [
-                    img_bytes
-                ]
-            else:
-                new_row = pd.DataFrame([{"URL": url, "Image_Data": img_bytes}])
-                self.output_data = pd.concat(
-                    [self.output_data, new_row], ignore_index=True
-                )
-                self.web_data = pd.concat([self.web_data, new_row], ignore_index=True)
-
+        
         self.process_imotion_data()
         self.process_merged_data()
 
@@ -260,13 +209,12 @@ class DataProcessor:
             url_dataframes.append(group)
         return url_dataframes
 
-    def plot_heatmap(self):
+    def plot_heatmap(self, screenshot_path):
         # Get the unique image path from the dataframe
         # img_path = data["Image_Path"].unique()[0]
         data = self.merged_data.copy()
-        image_data = data["Image_Data"].values[0]
-        img = Image.open(BytesIO(image_data))
-    
+        img = Image.open(screenshot_path)
+
         img_width, img_height = img.size
 
         # Calculate the normalized x and y coordinates
@@ -292,50 +240,13 @@ class DataProcessor:
         plt.axis("off")
         smoothed = gaussian_filter(displayArray, sigma=50)
         plt.imshow(smoothed, cmap="jet", alpha=.5)
+        # remove the white space around the image
 
+        plt.subplots_adjust(left=0, right=1, top=1, bottom=0)
+       
         # save the plot as fig
         fig = plt.gcf()
         # return the plot
         return fig
 
-    def create_heatmap(self):
-        images = self.heatmaps_plotting()
-        images_per_row = 5
-        num_images = len(images)
-        num_rows = (
-            num_images + images_per_row - 1
-        ) // images_per_row  # Calculate the number of rows needed
-
-        # Create a figure with subplots in a grid
-        fig, axes = plt.subplots(num_rows, images_per_row, figsize=(20, num_rows * 4))
-
-        # Flatten axes array for easy iteration, in case of a single row or column
-        if num_rows == 1:
-            axes = np.array([axes])
-        axes = axes.flatten()
-
-        for ax, img in zip(axes, images):
-            # Check if the image is a byte array, then convert it to a PIL Image
-            if isinstance(img, bytes):
-                img = Image.open(BytesIO(img))
-
-            # Display the image
-            ax.imshow(img)
-            ax.axis("off")  # Hide the axes ticks
-
-        # Hide any unused subplot axes if the number of images is not a perfect multiple of `images_per_row`
-        for ax in axes[num_images:]:
-            ax.axis("off")
-
-        plt.tight_layout()
-        plt.show()
-
-    def heatmaps_plotting(self):
-        # Split the data into different sections based on the URL
-        url_dataframes = self.__split_data()
-        # Initialize an empty list to store all output
-        outputs = []
-        # Iterate over the groups and save each group as a separate CSV file
-        for data in url_dataframes:
-            outputs.extend(self.plot_heatmap(data))
-        return outputs
+    

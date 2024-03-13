@@ -12,6 +12,7 @@ from io import BytesIO
 
 from PIL import Image
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.options import Options
 
@@ -42,6 +43,8 @@ class WebPageCapture:
         )
         # capture the entire webpage
         chrome_options.add_argument("--hide-scrollbars")
+        chrome_options.add_argument("--start-maximized")
+        chrome_options.add_argument("--disable-gpu")
         
 
         return chrome_options
@@ -75,11 +78,13 @@ class WebPageCapture:
             except TimeoutException:
                 print("Loading took too much time, retrying...")
         # Set the width and height of the browser window to the size of the whole document
-        total_width = driver.execute_script("return document.body.offsetWidth")
-        total_height = driver.execute_script("return document.body.parentNode.scrollHeight")
-        driver.set_window_size(total_width, total_height)
+        # Use JavaScript to get the full width and height of the webpage
+        total_width = driver.execute_script("return Math.max( document.body.scrollWidth, document.body.offsetWidth, document.documentElement.clientWidth, document.documentElement.scrollWidth, document.documentElement.offsetWidth );")
+        total_height = driver.execute_script("return Math.max( document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight );")
 
-        screenshot_bytes = driver.get_screenshot_as_png()
+        driver.set_window_size(total_width, total_height)
+        full_page = driver.find_element(By.TAG_NAME, "body")
+        screenshot_bytes = full_page.screenshot_as_png()
         # Optionally, convert bytes to Image for manipulation or viewing
         screenshot_img = Image.open(BytesIO(screenshot_bytes))
         driver.quit()
