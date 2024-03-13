@@ -1,0 +1,16 @@
+name: my_env
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - tkinter
+  - pandas
+  - openpyxl
+  - os
+  - seaborn
+  - matplotlib
+  - numpy
+  - pillow
+  - pip:
+    - Figure
+    - FigureCanvasTkAgg
