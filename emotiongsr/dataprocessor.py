@@ -304,9 +304,9 @@ class DataProcessor:
 
         df_emotions["Timestamp"] = df["Timestamp"]
         df_emotions["index"] = df["index"]
-        df_emotions["frame"] = df["frame"]
+
         df_emotions = df_emotions.melt(
-            id_vars=["Timestamp", "index", "frame"],
+            id_vars=["Timestamp", "index"],
             value_vars=EMOTIONS,
             var_name="Emotion",
             value_name="Intensity",
@@ -331,7 +331,6 @@ class DataProcessor:
         # make an index column
         df = df.reset_index()
         df["index"] = df.index
-        df["frame"] = df["index"] // 20
 
         # melt emotions
         df = self.__melt_emotions(df, value)
@@ -345,31 +344,33 @@ class DataProcessor:
         df["norm_y"] = df["norm_y"] * img.size[1]
 
         # TODO change the color scale based on the gradient of the uploaded image
+        color_scale = [
+            [0.0, "rgba(0, 0, 255, 0)"],  # Transparent blue at the lowest value
+            [0.2, "rgba(0, 0, 255, 0.2)"],  # Slightly opaque blue
+            [0.4, "rgba(0, 255, 255, 0.4)"],  # Cyan
+            [0.6, "rgba(0, 255, 0, 0.6)"],  # Green
+            [0.8, "rgba(255, 255, 0, 0.8)"],  # Yellow
+            [1.0, "rgba(255, 0, 0, 1)"],  # Fully opaque red at the highest value
+        ]
+        zmid = None
         if value == "Phasic Signal":
             color_scale = [
                 [
                     0.0,
                     "rgba(0, 0, 255, 1)",
-                ],  # Fully opaque dark blue at the lowest value
-                [0.2, "rgba(0, 0, 255, 0.8)"],  # Less opaque blue
-                [0.4, "rgba(0, 255, 255, 0.6)"],  # Cyan with some transparency
-                [0.6, "rgba(0, 255, 0, 0.4)"],  # Green with more transparency
-                [0.8, "rgba(255, 255, 0, 0.2)"],  # Yellow with high transparency
+                ],  # Blue at the largest negative value (mapped to 0)
                 [
-                    1.0,
-                    "rgba(255, 0, 0, 0)",
-                ],  # Transparent light red at the highest value
+                    0.49,
+                    "rgba(0, 255, 0, 0.1)",
+                ],  # Transition to transparent - slightly blue
+                [0.5, "rgba(255, 255, 255, 0)"],  # Transparent at 0
+                [
+                    0.51,
+                    "rgba(255, 255, 0, 0.1)",
+                ],  # Transition from transparent - slightly red
+                [1.0, "rgba(255, 0, 0, 1)"],  # Red at the largest positive value
             ]
-        else:
-            # Define the color scale based on the uploaded image gradient
-            color_scale = [
-                [0.0, "rgba(0, 0, 255, 0)"],  # Transparent blue at the lowest value
-                [0.2, "rgba(0, 0, 255, 0.2)"],  # Slightly opaque blue
-                [0.4, "rgba(0, 255, 255, 0.4)"],  # Cyan
-                [0.6, "rgba(0, 255, 0, 0.6)"],  # Green
-                [0.8, "rgba(255, 255, 0, 0.8)"],  # Yellow
-                [1.0, "rgba(255, 0, 0, 1)"],  # Fully opaque red at the highest value
-            ]
+            zmid = 0
 
         fig = px.imshow(img)
         fig.add_trace(
@@ -380,6 +381,7 @@ class DataProcessor:
                 z=df[df["Emotion"] == emotion]["intensity"],
                 histfunc="sum",
                 colorscale=color_scale,
+                zmid=zmid,
                 ncontours=100,
                 line=dict(width=0),
                 opacity=0.9,
@@ -387,14 +389,27 @@ class DataProcessor:
                 # fill the contour in all the histogram
                 xaxis="x",
                 yaxis="y",
+                colorbar=dict(
+                    title=value,
+                    x=0.5,  # Adjust this to move the color bar closer to or further from the plot
+                ),
             )
         )
         fig.update_layout(
             title=emotion,
-            xaxis_title="X",
-            yaxis_title="Y",
-            xaxis=dict(showgrid=False, zeroline=False, visible=False),
-            yaxis=dict(showgrid=False, zeroline=False, visible=False),
+            xaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                visible=False,  # the axis is not visible
+                domain=[0, 0.5],
+            ),
+            yaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                visible=False,  # the axis is visible if needed
+                domain=[0, 1],  # use the full height of the canvas
+            ),
+           
         )
 
         fig.update_xaxes(range=[0, img.size[0]])
