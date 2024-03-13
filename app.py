@@ -27,7 +27,7 @@ import tkinter as tk
 from tkinter import ttk
 from Experiment_Peaks_Controller import VideoProcessingApp
 from Experiment_Web_Controller import *
-from Experiment_Images_Controller import run_app
+from images_app import run_app
 import tkinter as tk
 from tkinter import ttk
 

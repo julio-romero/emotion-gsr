@@ -26,40 +26,6 @@ pending_plots = []  # Images in the queue to be displayed
 
 def run_app(root):
 
-    # Step 1 For Cleaning Csv
-    def file_clean(df, filename):
-        df = df[df[df[0] == "Row"].index[0]:]
-        df = df.reset_index(drop=True)
-        df.columns = df.iloc[0].tolist()
-        df = df[1:]
-        df["SlideEvent"] = df["SlideEvent"].ffill()
-        df = df.loc[df.SlideEvent == "StartMedia"]
-        df = df.drop(["EventSource", "GSR Resistance CAL", "GSR Conductance CAL", "Heart Rate PPG ALG"], axis=1)
-        df = df.reset_index(drop=True)
-        df["Participant"] = filename
-        return df
-
-    def clean_files(raw_path, output_path):
-        columns_to_keep = ['Timestamp', 'Row', 'StimType', 'Duration', 'SourceStimuliName', 'CollectionPhase',
-                    'SlideEvent', 'Participant', 'SampleNumber', 'Anger',
-                    'Contempt', 'Disgust', 'Fear', 'Joy', 'Sadness', 'Surprise', 
-                    'Engagement', 'Valence', 'Sentimentality', 'Confusion', 'Neutral', 'ET_GazeLeftx', 'ET_GazeLefty', 'ET_GazeRightx',
-                    'ET_GazeRighty', 'ET_PupilLeft', 'ET_PupilRight' ]
-        os.makedirs(output_path, exist_ok=True)
-        for file in os.listdir(raw_path):
-            file_path = os.path.join(raw_path, file)
-            try:
-                df = pd.read_csv(file_path, header=None, low_memory=False)
-            except pd.errors.ParserError as e:
-                messagebox.showerror("Error", f"Error reading CSV file: {file_path}\n{e}")
-                continue
-            filename = file.split(".")[0].split("_")[1]
-            cleaned_df = file_clean(df, filename)
-            if cleaned_df is not None:
-                cleaned_df = cleaned_df[columns_to_keep]
-                cleaned_csv_filename = f"{filename}_cleaned.csv"
-                cleaned_csv_path = os.path.join(output_path, cleaned_csv_filename)
-                cleaned_df.to_csv(cleaned_csv_path, index=False)
 
     def browse_raw_folder():
         folder_path = filedialog.askdirectory()
@@ -82,70 +48,6 @@ def run_app(root):
         data.to_excel(os.path.join(output_path, "cleaned_data.xlsx"), index=False)
         messagebox.showinfo("Info", "Files cleaned successfully!")
 
-    # Step 2 For Convert Cleaned Csv into Xlx
-    def read_csv_file():
-        file_path = filedialog.askopenfilename(title="Select CSV File", filetypes=(("CSV files", "*.csv"), ("All files", "*.*")))
-        return file_path
-
-    def save_excel(df, participant_name, base_path):
-        save_path = os.path.join(base_path, f"{participant_name}.xlsx")
-        
-        workbook = Workbook()
-
-        emotion_columns = ['Anger', 'Contempt', 'Disgust', 'Fear', 'Joy', 
-                        'Sadness', 'Surprise', 'Engagement', 'Valence', 
-                        'Sentimentality', 'Confusion', 'Neutral']
-
-        for source_stimuli_name in df['SourceStimuliName'].unique():
-            sheet = workbook.create_sheet(title=source_stimuli_name[:31])  # Excel sheet names have a maximum length of 31 characters
-            
-            filtered_df = df[df['SourceStimuliName'] == source_stimuli_name]
-            
-            # Replace empty strings and NaN with 0 in the specific columns of the filtered DataFrame
-            filtered_df[emotion_columns] = filtered_df[emotion_columns].replace("", 0).fillna(0)
-
-            # Select the desired columns
-            columns = ['Timestamp', 'Row', 'StimType', 'Duration', 'SourceStimuliName',
-                'CollectionPhase', 'SlideEvent', 'Participant', 'SampleNumber',
-                'SampleNumber.1', 'SampleNumber.2', 'Anger', 'Contempt', 'Disgust',
-                'Fear', 'Joy', 'Sadness', 'Surprise', 'Engagement', 'Valence',
-                'Sentimentality', 'Confusion', 'Neutral', 'ET_GazeLeftx', 'ET_GazeLefty', 'ET_GazeRightx',
-                    'ET_GazeRighty', 'ET_PupilLeft', 'ET_PupilRight' ]
-            
-            #filtered_df[columns] = filtered_df[columns].replace("", 0).fillna(0)
-            
-            sheet.append(columns)
-            for row in filtered_df[columns].itertuples(index=False):
-                sheet.append(row)
-
-        workbook.remove(workbook['Sheet'])
-        workbook.save(save_path)
-
-    def main_process():
-        file_path = read_csv_file()
-        if file_path:
-            df = pd.read_csv(file_path)
-            participant_name = df['Participant'].iloc[0]  # Extracting the participant's name from the first row
-            base_path = os.path.dirname(file_path)
-            save_excel(df, participant_name, base_path)
-            messagebox.showinfo("Success", f"Excel file has been generated and saved as {participant_name}.xlsx!")
-        else:
-            messagebox.showwarning("Error", "Unable to read CSV file.")
-
-    # Step 3 Functions
-    # Function to select the Excel file
-    def select_excel_file():
-        excel_file_path = filedialog.askopenfilename(filetypes=[("Excel files", "*.xlsx")])
-        if excel_file_path:
-            entry_excel_file.delete(0, tk.END)
-            entry_excel_file.insert(0, excel_file_path)
-
-    # Function to select the image file
-    def select_image_file():
-        image_file_path = filedialog.askopenfilename(filetypes=[("Image files", "*.jpg;*.png;*.jpeg")])
-        if image_file_path:
-            entry_image_file.delete(0, tk.END)
-            entry_image_file.insert(0, image_file_path)
 
     # Function to create and save individual plots for each emotion
     def create_and_save_plot():
@@ -486,7 +388,7 @@ def run_app(root):
 
     # Step 1 Tab
     tab1 = ttk.Frame(notebook)
-    notebook.add(tab1, text="Step 1 - CSV Cleaner")
+    notebook.add(tab1, text="Data processing")
 
     raw_path_var = tk.StringVar()
     output_path_var = tk.StringVar()
@@ -501,7 +403,7 @@ def run_app(root):
 
     # Step 2 Tab
     tab2 = ttk.Frame(notebook)
-    notebook.add(tab2, text="Step 2 - CSV to Excel Converter")
+    notebook.add(tab2, text="Plotting")
 
     start_btn = tk.Button(tab2, text="Convert CSV to Excel", command=main_process)
     start_btn.pack(pady=50)
