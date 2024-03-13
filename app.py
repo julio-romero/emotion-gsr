@@ -26,7 +26,6 @@ Authors:
 import tkinter as tk
 from tkinter import ttk
 from Experiment_Peaks_Controller import VideoProcessingApp
-from Experiment_Web_Controller import *
 from images_app import run_app
 from websites_app import run_web_app
 import tkinter as tk
