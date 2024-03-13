@@ -19,15 +19,10 @@ def run_app(root):
     imotions_path_entry.grid(row=0, column=1)
     ttk.Button(root, text="Browse", command=lambda: select_directory(imotions_path_entry)).grid(row=0, column=2)
 
-    ttk.Label(root, text="IMAGES_PATH:").grid(row=1, column=0)
-    images_path_entry = ttk.Entry(root)
-    images_path_entry.grid(row=1, column=1)
-    ttk.Button(root, text="Browse", command=lambda: select_directory(images_path_entry)).grid(row=1, column=2)
-
-    ttk.Label(root, text="OUTPUT_PATH:").grid(row=2, column=0)
+    ttk.Label(root, text="OUTPUT_PATH:").grid(row=1, column=0)
     output_path_entry = ttk.Entry(root)
-    output_path_entry.grid(row=2, column=1)
-    ttk.Button(root, text="Browse", command=lambda: select_directory(output_path_entry)).grid(row=2, column=2)
+    output_path_entry.grid(row=1, column=1)
+    ttk.Button(root, text="Browse", command=lambda: select_directory(output_path_entry)).grid(row=1, column=2)
 
     # Emotion and signal selection
     ttk.Label(root, text="Select Emotion:").grid(row=3, column=0)
@@ -95,14 +90,12 @@ def run_app(root):
 
     def generate_heatmap():
         IMOTIONS_PATH = imotions_path_entry.get()
-        IMAGES_PATH = images_path_entry.get()
+        
         OUTPUT_PATH = output_path_entry.get()
 
-        if not (IMOTIONS_PATH and IMAGES_PATH and OUTPUT_PATH):
-            messagebox.showerror("Error", "Please select all directories.")
-            return
+        
 
-        processor = DataProcessor(IMOTIONS_PATH, IMAGES_PATH, OUTPUT_PATH)
+        processor = DataProcessor(IMOTIONS_PATH, OUTPUT_PATH)
         processor.clean_files()
         data = processor.get_clean_data()
 

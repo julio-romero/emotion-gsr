@@ -84,9 +84,8 @@ class DataProcessor:
     further analysis can be made in pure Python.
     """
 
-    def __init__(self, imotions_path, images_path, output_path=None) -> None:
+    def __init__(self, imotions_path, output_path=None) -> None:
         self.imotions_path = imotions_path
-        self.images_path = images_path
         self.output_path = output_path
         self.data_is_clean = False
 
@@ -264,7 +263,7 @@ class DataProcessor:
         image_name = image_subpath.split("/")[-1].replace(".jpg", "")
         df = df[df["SourceStimuliName"] == image_name]
         # Load the image
-        image_path = os.path.join(self.images_path, image_subpath)
+        image_path = image_subpath
         img = cv2.imread(image_path)
         # Create a mask image to draw the emotions on
         emotion_mask = np.zeros_like(img)
@@ -338,7 +337,7 @@ class DataProcessor:
         df = self.__melt_emotions(df, value)
 
         # Load the image
-        image_path = os.path.join(self.images_path, image_subpath)
+        image_path = image_subpath
 
         img = Image.open(image_path)
 
