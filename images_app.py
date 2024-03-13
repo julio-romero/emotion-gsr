@@ -79,6 +79,20 @@ def run_app(root):
         fig.write_html(temp_file.name)
         webbrowser.open('file://' + temp_file.name)
 
+    def display_multiple_plotly_figure(figs):
+        # Clear the previous plot
+        for widget in plot_frame.winfo_children():
+            widget.destroy()
+
+        # Save Plotly figure as an HTML file and open it in a web view
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".html")
+        with open(temp_file.name, 'w') as f:
+            for figure in figs:
+                f.write(figure.to_html(full_html=False, include_plotlyjs='cdn'))
+                f.write("<br>")
+        
+        webbrowser.open('file://' + temp_file.name)
+
     def generate_heatmap():
         IMOTIONS_PATH = imotions_path_entry.get()
         IMAGES_PATH = images_path_entry.get()
@@ -115,8 +129,8 @@ def run_app(root):
                     display_plotly_figure(fig)
                 #all emotions case
                 if emotion == "All Emotions":
-                    fig = processor.get_all_emotion_heatmaps(data, signal, IMAGE_PATH)
-                    display_plotly_figure(fig)
+                    figs = processor.get_all_emotion_heatmaps(data, signal, IMAGE_PATH)
+                    display_multiple_plotly_figure(figs)
                 messagebox.showinfo("Success", "Heatmap generated successfully.")
             except Exception as e:
                 messagebox.showerror("Error", str(e))
