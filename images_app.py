@@ -123,14 +123,16 @@ def run_app(root):
                     fig, ax = plt.subplots()  # Create a figure and axis to plot
                     ax.imshow(matrix_like_object)  # Show the image
                     ax.axis('off')  # Hide the axis
-                    display_matplotlib_figure(fig)                    
+                    display_matplotlib_figure(fig) 
+                #all emotions case
+                elif emotion == "All Emotions":
+                    figs = processor.get_all_emotion_heatmaps(data, signal, IMAGE_PATH)
+                    display_multiple_plotly_figure(figs)                   
                 else:
                     fig = processor.generate_emotion_heatmap(data, emotion, signal, IMAGE_PATH)
                     display_plotly_figure(fig)
-                #all emotions case
-                if emotion == "All Emotions":
-                    figs = processor.get_all_emotion_heatmaps(data, signal, IMAGE_PATH)
-                    display_multiple_plotly_figure(figs)
+                
+                
                 messagebox.showinfo("Success", "Heatmap generated successfully.")
             except Exception as e:
                 messagebox.showerror("Error", str(e))
