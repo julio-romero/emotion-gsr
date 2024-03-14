@@ -21,7 +21,6 @@ Colchester, UK
 Authors:
     - Lesly C Guerrero Velez 
     - Manuel J Romero Olvera
-    - Add yourself here
 """
 import tkinter as tk
 
