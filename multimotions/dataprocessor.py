@@ -10,15 +10,11 @@ February 2024
 
 import os
 
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from PIL import Image
 from scipy.ndimage import gaussian_filter
-
-
-
 
 
 class DataProcessor:

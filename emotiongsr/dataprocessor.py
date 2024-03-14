@@ -21,8 +21,8 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from PIL import Image
+from plotly.subplots import make_subplots
 
 warnings.filterwarnings("ignore")
 
@@ -295,7 +295,6 @@ class DataProcessor:
         result_img = cv2.addWeighted(heatmap_img, 0.5, img, 0.5, 0)
 
         return result_img
-       
 
     def __melt_emotions(self, data, value):
         df = data.copy()
@@ -423,7 +422,7 @@ class DataProcessor:
         fig.update_xaxes(range=[0, img.size[0]])
         fig.update_yaxes(range=[img.size[1], 0])
 
-        #fig.show()
+        # fig.show()
         return fig
 
     def get_all_emotion_heatmaps(self, data, value, image_subpath):
@@ -431,5 +430,5 @@ class DataProcessor:
         for emotion in EMOTIONS:
             fig = self.generate_emotion_heatmap(data, emotion, value, image_subpath)
             emotion_fig.append(fig)
-        
+
         return emotion_fig
