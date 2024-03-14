@@ -54,21 +54,21 @@ def run_web_app(root):
     frame = Frame(root)
     frame.pack(pady=20)
 
-    Label(frame, text="IMOTIONS_CSV:").grid(row=0, column=0, padx=5, pady=5)
+    Label(frame, text="iMotions CSV:").grid(row=0, column=0, padx=5, pady=5)
     imotions_entry = tk.Entry(frame)
     imotions_entry.grid(row=0, column=1, padx=5, pady=5)
     Button(frame, text="Browse", command=lambda: select_file(imotions_entry)).grid(
         row=0, column=2, padx=5, pady=5
     )
 
-    Label(frame, text="SCROLL_CSV:").grid(row=1, column=0, padx=5, pady=5)
+    Label(frame, text="Scroll CSV:").grid(row=1, column=0, padx=5, pady=5)
     scroll_entry = tk.Entry(frame)
     scroll_entry.grid(row=1, column=1, padx=5, pady=5)
     Button(frame, text="Browse", command=lambda: select_file(scroll_entry)).grid(
         row=1, column=2, padx=5, pady=5
     )
 
-    Label(frame, text="OUTPUT_PATH:").grid(row=2, column=0, padx=5, pady=5)
+    Label(frame, text="Output Path:").grid(row=2, column=0, padx=5, pady=5)
     output_path_entry = tk.Entry(frame)
     output_path_entry.grid(row=2, column=1, padx=5, pady=5)
     Button(
@@ -76,7 +76,7 @@ def run_web_app(root):
     ).grid(row=2, column=2, padx=5, pady=5)
 
     # screenshot file input
-    Label(frame, text="Screenshot:").grid(row=3, column=0, padx=5, pady=5)
+    Label(frame, text="Website Screenshot:").grid(row=3, column=0, padx=5, pady=5)
     screenshot_entry = tk.Entry(frame)
     screenshot_entry.grid(row=3, column=1, padx=5, pady=5)
     Button(frame, text="Browse", command=lambda: select_file(screenshot_entry)).grid(

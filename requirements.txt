@@ -15,3 +15,6 @@ scikit-learn==1.4.1.post1
 
 # This installs matplotlib and numpy
 seaborn==0.13.2
+
+# For the plotting
+ipython==8.22.2

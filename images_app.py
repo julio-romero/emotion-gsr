@@ -39,14 +39,14 @@ def run_app(root):
     root.title("Emotion Heatmap Generator")
 
     # Layout for directory selection
-    ttk.Label(root, text="IMOTIONS_PATH:").grid(row=0, column=0)
+    ttk.Label(root, text="iMotions Path:").grid(row=0, column=0)
     imotions_path_entry = ttk.Entry(root)
     imotions_path_entry.grid(row=0, column=1)
     ttk.Button(
         root, text="Browse", command=lambda: select_directory(imotions_path_entry)
     ).grid(row=0, column=2)
 
-    ttk.Label(root, text="OUTPUT_PATH:").grid(row=1, column=0)
+    ttk.Label(root, text="Output Path:").grid(row=1, column=0)
     output_path_entry = ttk.Entry(root)
     output_path_entry.grid(row=1, column=1)
     ttk.Button(
