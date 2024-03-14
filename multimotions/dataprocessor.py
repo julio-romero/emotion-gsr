@@ -200,7 +200,7 @@ class DataProcessor:
         self.split_data = self.merged_data.groupby("URL")
         # Iterate over the groups and save each group as a separate CSV file
         url_dataframes = []
-        for name, group in self.split_data:
+        for _, group in self.split_data:
             # Save each group as a list of dataframes
             url_dataframes.append(group)
         return url_dataframes

@@ -16,13 +16,11 @@ import os
 import warnings
 
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
-from plotly.subplots import make_subplots
 
 warnings.filterwarnings("ignore")
 
@@ -155,9 +153,7 @@ class DataProcessor:
         for _, df in dataframes.items():
             # use the first start time in the first iteration
             start_time = start_times[i]
-            df["Timestamp"] = start_time + (
-                df["Timestamp"] * pd.to_timedelta(1, unit="ms")
-            )
+            df["Timestamp"] = start_time + (df["Timestamp"] * pd.to_timedelta(1, unit="ms"))
             df.set_index("Timestamp", inplace=True)
             i += 1
         data = pd.DataFrame()
@@ -166,9 +162,7 @@ class DataProcessor:
         # resample data for 0.5 second intervals, use the mean for numerical columns, and the first for categorical
         # backwards fill the categorical columns
         data["SourceStimuliName"] = data["SourceStimuliName"].ffill()
-        data = (
-            data.groupby(["SourceStimuliName", "Participant"]).resample("0.01s").mean()
-        )
+        data = data.groupby(["SourceStimuliName", "Participant"]).resample("0.01s").mean()
         # the inverse of groupby, reset_index
         data = data.reset_index()
         data = data.set_index("Timestamp")
@@ -176,12 +170,10 @@ class DataProcessor:
         if "ET_GazeLeftx" in data.columns:
             # Calculate the normalized x and y coordinates
             data["norm_x"] = (
-                np.nan_to_num(((data["ET_GazeLeftx"] + data["ET_GazeRightx"]) / 2))
-                / 1920
+                np.nan_to_num(((data["ET_GazeLeftx"] + data["ET_GazeRightx"]) / 2)) / 1920
             )
             data["norm_y"] = (
-                np.nan_to_num(((data["ET_GazeLefty"] + data["ET_GazeRighty"]) / 2))
-                / 1080
+                np.nan_to_num(((data["ET_GazeLefty"] + data["ET_GazeRighty"]) / 2)) / 1080
             )
         else:
             data["norm_x"] = np.random.rand(len(data))
@@ -197,9 +189,7 @@ class DataProcessor:
         df = df.loc[df.SlideEvent == "StartMedia"]
         # Drop columns if they exist in the DataFrame
         columns_to_drop = ["EventSource"]
-        df.drop(
-            columns=[col for col in columns_to_drop if col in df.columns], inplace=True
-        )
+        df.drop(columns=[col for col in columns_to_drop if col in df.columns], inplace=True)
         df = df.reset_index(drop=True)
         df["Participant"] = filename
         return df
@@ -239,14 +229,10 @@ class DataProcessor:
 
             if cleaned_df is not None:
                 # Keep only the columns that exist in the DataFrame
-                existing_columns = [
-                    col for col in columns_to_keep if col in cleaned_df.columns
-                ]
+                existing_columns = [col for col in columns_to_keep if col in cleaned_df.columns]
 
                 # If any columns are missing, print a message or log it
-                missing_columns = [
-                    col for col in columns_to_keep if col not in cleaned_df.columns
-                ]
+                missing_columns = [col for col in columns_to_keep if col not in cleaned_df.columns]
                 if missing_columns:
                     print(f"Warning: Missing columns {missing_columns} in file {file}")
 
@@ -343,7 +329,6 @@ class DataProcessor:
         df["norm_x"] = df["norm_x"] * img.size[0]
         df["norm_y"] = df["norm_y"] * img.size[1]
 
-        # TODO change the color scale based on the gradient of the uploaded image
         color_scale = [
             [0.0, "rgba(0, 0, 255, 0)"],  # Transparent blue at the lowest value
             [0.2, "rgba(0, 0, 255, 0.2)"],  # Slightly opaque blue
