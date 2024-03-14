@@ -24,8 +24,9 @@ Authors:
     - Add yourself here
 """
 import tkinter as tk
-from Experiment_Peaks_Controller import VideoProcessingApp
+
 from images_app import run_app
+from videos_app import VideoProcessingApp
 from websites_app import run_web_app
 
 
