@@ -1,2 +1,17 @@
 # Required for pre-processing
 pandas==2.2.0
+
+# Required for the imshow of emotions
+opencv-python==4.9.0.80
+# Excel handler
+openpyxl==3.1.2
+
+# Heatmaps of emotions
+plotly==5.19.0
+
+# Gaussian filters
+scikit-image==0.22.0
+scikit-learn==1.4.1.post1
+
+# This installs matplotlib and numpy
+seaborn==0.13.2
