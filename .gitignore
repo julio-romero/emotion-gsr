@@ -160,11 +160,7 @@ cython_debug/
 #.idea/
 
 # iMotions stuff
-Data/*.csv
 CleanedData/*.csv
-Images
-WebData/web_pages/*
-WebData/*.csv
 
 # Other
 .DS_Store
