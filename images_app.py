@@ -78,7 +78,7 @@ def run_app(root):
 
     ttk.Label(root, text="Select Signal:").grid(row=4, column=0)
     signal_combobox = ttk.Combobox(
-        root, values=["GSR Raw", "Phasic Signal", "Tonic Signal", "Emotion intensity"]
+        root, values=["GSR Raw", "Phasic Signal", "Tonic Signal", "Emotion intensity" ,"GSR Raw+Peak Detection", "Phasic Signal+Peak Detection", "Tonic Signal+Peak Detection"]
     )
     signal_combobox.grid(row=4, column=1, columnspan=2)
     signal_combobox.current(0)
@@ -180,9 +180,16 @@ def run_app(root):
                     figs = processor.get_all_emotion_heatmaps(data, signal, image_path)
                     display_multiple_plotly_figure(figs)
                 else:
-                    fig = processor.generate_emotion_heatmap(
-                        data, emotion, signal, image_path
-                    )
+                    if signal == "GSR Raw+Peak Detection" or signal == "Phasic Signal+Peak Detection" or signal == "Tonic Signal+Peak Detection":
+                        signal = signal.split('+')[0]
+                        
+                        fig = processor.generate_emotion_gsr_plot(
+                            data, emotion, signal, image_path
+                        )
+                    else:
+                        fig = processor.generate_emotion_heatmap(
+                            data, emotion, signal, image_path
+                        )
                     display_plotly_figure(fig)
 
                 messagebox.showinfo("Success", "Heatmap generated successfully.")
