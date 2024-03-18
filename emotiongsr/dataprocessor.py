@@ -21,6 +21,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from PIL import Image
+from plotly.subplots import make_subplots
 
 warnings.filterwarnings("ignore")
 
@@ -410,10 +411,157 @@ class DataProcessor:
         # fig.show()
         return fig
 
+    def generate_emotion_gsr_plot(self, data, emotion, value, image_subpath):
+        df = data.copy()
+
+        # use the image path to get the stimuli name
+        image_name = image_subpath.split("/")[-1].replace(".jpg", "")
+        df = df[df["SourceStimuliName"] == image_name]
+
+        # make an index column
+        df = df.reset_index()
+        df["index"] = df.index
+
+        # melt emotions
+        df = self.__melt_emotions(df, value)
+
+        # Load the image
+        image_path = image_subpath
+
+        img = Image.open(image_path)
+
+        df["norm_x"] = df["norm_x"] * img.size[0]
+        df["norm_y"] = df["norm_y"] * img.size[1]
+
+        color_scale = [
+            [0.0, "rgba(0, 0, 255, 0)"],  # Transparent blue at the lowest value
+            [0.2, "rgba(0, 0, 255, 0.2)"],  # Slightly opaque blue
+            [0.4, "rgba(0, 255, 255, 0.4)"],  # Cyan
+            [0.6, "rgba(0, 255, 0, 0.6)"],  # Green
+            [0.8, "rgba(255, 255, 0, 0.8)"],  # Yellow
+            [1.0, "rgba(255, 0, 0, 1)"],  # Fully opaque red at the highest value
+        ]
+        zmid = None
+        if value == "Phasic Signal":
+            color_scale = [
+                [
+                    0.0,
+                    "rgba(0, 0, 255, 1)",
+                ],  # Blue at the largest negative value (mapped to 0)
+                [
+                    0.49,
+                    "rgba(0, 255, 0, 0.1)",
+                ],  # Transition to transparent - slightly blue
+                [0.5, "rgba(255, 255, 255, 0)"],  # Transparent at 0
+                [
+                    0.51,
+                    "rgba(255, 255, 0, 0.1)",
+                ],  # Transition from transparent - slightly red
+                [1.0, "rgba(255, 0, 0, 1)"],  # Red at the largest positive value
+            ]
+            zmid = 0
+
+        fig = make_subplots(rows=2, cols=1,row_heights=[0.7,0.3])
+        # add Imgae
+        fig.add_trace(go.Image(z=img),row=1, col=1)
+        # adding Emotion Heatmap
+        gsr_data =df[df["Emotion"] == emotion]["intensity"]
+        fig.append_trace(
+            go.Histogram2dContour(
+                name=value,
+                x=df[df["Emotion"] == emotion]["norm_x"],
+                y=df[df["Emotion"] == emotion]["norm_y"],
+                z=gsr_data,
+                histfunc="sum",
+                colorscale=color_scale,
+                zmid=zmid,
+                ncontours=100,
+                line=dict(width=0),
+                opacity=0.9,
+                contours=dict(coloring="heatmap", size=3),
+                # fill the contour in all the histogram
+                xaxis="x",
+                yaxis="y",
+                
+                colorbar=dict(
+                    title=value,
+                    x=1, y=0.85,  # Adjust this to move the color bar closer to or further from the plot  row=1, col=1
+                ),
+            ),row=1, col=1
+        )
+
+    #    adding GSR plot
+        list_gsr = gsr_data.tolist()
+        # findig peak
+        sorted_array = np.sort(np.array(gsr_data),)
+        sorted_array = sorted_array[::-1]
+        sorted_list = sorted_array.tolist()
+        peak=[]
+        indices=[]
+        for x,val in enumerate(list_gsr) :   
+            if val in sorted_list[:5]:
+                if list_gsr[x-1]<list_gsr[x]>list_gsr[x+1]:
+                    indices.append(x)
+                    peak.append(val)
+
+        fig.append_trace(go.Scatter(
+            y=gsr_data,
+            mode='lines+markers',
+            name='Original Plot',
+        
+        ),row=2, col=1)
+
+        fig.append_trace(go.Scatter(
+            x=indices,
+            y=[j for j in peak ],
+            # y=[list_gsr[j] for j in indices ],
+            mode='markers',
+            marker=dict(
+                size=8,
+                color='red',
+                symbol='cross',
+                
+            ),
+            name='Detected Peaks'  
+        ),row=2, col=1)
+        
+        fig.update_layout(height=600, width=800, title_text=f'Emotion-{emotion}-and-{value}',legend=dict(y=0.1),
+                        autosize=False,
+                        margin=dict(
+                                    l=50,
+                                    r=50,
+                                    b=10,
+                                    t=60,
+                                ),
+                                xaxis=dict(
+                                    showgrid=False,
+                                    zeroline=False,
+                                    visible=False, # the axis is not visible
+                                ),
+                                yaxis=dict(
+                                    showgrid=False,
+                                    zeroline=False,
+                                    visible=False, # the axis is visible if needed
+                                    # domain=[0, 1], # use the full height of the canvas
+                                ),
+                        )
+        fig.update_xaxes(range=[0, img.size[0]],row=1, col=1)
+        fig.update_yaxes(range=[img.size[1], 0],row=1, col=1)
+
+        return fig
+
     def get_all_emotion_heatmaps(self, data, value, image_subpath):
         emotion_fig = []
-        for emotion in EMOTIONS:
-            fig = self.generate_emotion_heatmap(data, emotion, value, image_subpath)
-            emotion_fig.append(fig)
+        if value == "GSR Raw+Peak Detection" or value == "Phasic Signal+Peak Detection" or value == "Tonic Signal+Peak Detection"or value == "Emotion intensity+Peak Detection": 
+            value = value.split('+')[0]
+
+            for emotion in EMOTIONS:               
+                fig = self.generate_emotion_gsr_plot(data, emotion, value, image_subpath)             
+                emotion_fig.append(fig)
+
+        else:
+            for emotion in EMOTIONS:
+                fig = self.generate_emotion_heatmap(data, emotion, value, image_subpath)
+                emotion_fig.append(fig)
 
         return emotion_fig
